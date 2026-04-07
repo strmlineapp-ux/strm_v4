@@ -1,0 +1,83 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // -------------------------------------------------------------------------
+    // SECURITY UTILITY FUNCTIONS
+    // -------------------------------------------------------------------------
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Ensures user is initialized and approved (not a Viewer waiting for Method C approval)
+    function isFullUser() {
+      let user = getUserDoc();
+      return user != null && user.accountType == 'Full';
+    }
+
+    // Ensures user belongs to the requested workspace (Hybrid Model logical isolation constraint)
+    function isInWorkspace(targetWorkspaceId) {
+       return getUserDoc().workspaceId == targetWorkspaceId;
+    }
+    
+    function isAdmin() {
+      return getUserDoc().isAdmin == true;
+    }
+
+    // -------------------------------------------------------------------------
+    // COLLECTION RULES
+    // -------------------------------------------------------------------------
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      // Any authenticated user can read if they share the same workspace 
+      // OR they are reading their own profile during bootstrap login.
+      allow read: if isSignedIn() && (
+        request.auth.uid == userId || (isFullUser() && isInWorkspace(resource.data.workspaceId))
+      );
+      
+      // A user can create their own document if they don't exist yet (Bootstrap Method A/B/C)
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      
+      // Full users can update their own preferences. Admins can update any user in their workspace (for approving 'Viewer' to 'Full').
+      allow update: if isSignedIn() && (
+        (request.auth.uid == userId && isFullUser()) || 
+        (isAdmin() && isInWorkspace(resource.data.workspaceId))
+      );
+      
+      // Only admins can delete/reject users
+      allow delete: if isSignedIn() && isAdmin() && isInWorkspace(resource.data.workspaceId);
+    }
+    
+    // PRE-APPROVED EMAILS COLLECTION (Method B)
+    match /pre-approved-emails/{docId} {
+      allow read: if isSignedIn(); // Needs to be readable during first-boot logic check
+      allow write: if isSignedIn() && isFullUser() && isAdmin(); // Only admins can invite
+    }
+
+    // STANDARD WORKSPACE ENTITIES (Projects, Teams, Calendars, Events, BadgeCollections, Badges)
+    // The core rule: Must be signed in, must be a 'Full' user, and must match the document's workspaceId filtering.
+    
+    match /{collection}/{docId} {
+      // Apply baseline to the major data pipelines
+      allow read, write: if isSignedIn() 
+                         && isFullUser() 
+                         && isInWorkspace(resource.data.workspaceId)
+                         && collection in ['projects', 'events', 'calendars', 'teams', 'badgeCollections', 'badges'];
+    }
+    
+    // NESTED TASKS SUB-COLLECTION (Inside Projects)
+    match /projects/{projectId}/tasks/{taskId} {
+      // Must read from parent project's workspaceId
+      allow read, write: if isSignedIn() 
+                         && isFullUser() 
+                         && isInWorkspace(get(/databases/$(database)/documents/projects/$(projectId)).data.workspaceId);
+    }
+  }
+}
