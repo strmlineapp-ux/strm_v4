@@ -1,5 +1,6 @@
-import { onRequest, Request, Response } from "firebase-functions/v2/https";
+import { onRequest, Request } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
+import type { Response } from "express";
 
 // Example v2 edge function
 // Multi-Region deployed depending on configuration for Edge-First resolution
