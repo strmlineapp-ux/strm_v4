@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { cn } from '../../lib/utils';
 
 interface InlineEditorProps {
   value: string;
@@ -6,26 +7,27 @@ interface InlineEditorProps {
   className?: string;
   placeholder?: string;
   disabled?: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 export function InlineEditor({
   value,
   onSave,
-  className = "",
-  placeholder = "Click to edit...",
+  className,
+  placeholder,
   disabled = false,
+  onClick
 }: InlineEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync state if external value prop updates natively via Firestore
   useEffect(() => {
     setCurrentValue(value);
   }, [value]);
-
+  
   const handleSave = useCallback(() => {
-    if (currentValue.trim() !== value.trim()) {
+    if (currentValue.trim() && currentValue.trim() !== value) {
       onSave(currentValue.trim());
     }
     setIsEditing(false);
@@ -38,24 +40,36 @@ export function InlineEditor({
     }
   }, [isEditing]);
 
+  useEffect(() => {
+    if (!isEditing) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        handleSave();
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isEditing, handleSave]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Critical: Stops Dnd-Kit sensors from capturing the keyboard inputs!
-    e.stopPropagation();
-    
+    // Stop propagation to prevent dnd-kit's keyboard sensors from firing
+    e.stopPropagation(); 
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSave();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      setCurrentValue(value);
+      setCurrentValue(value); // Revert to original value
       setIsEditing(false);
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleDisplayClick = (e: React.MouseEvent) => {
+    if (onClick) onClick(e);
     if (!disabled) {
-      // Prevents dragging logic if user just clicks to edit
-      e.stopPropagation();
+      e.stopPropagation(); // Prevent card drag from starting
       setIsEditing(true);
     }
   };
@@ -68,20 +82,24 @@ export function InlineEditor({
         onChange={(e) => setCurrentValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleSave}
-        onPointerDown={(e) => e.stopPropagation()} // Overrides outer pointer interactions entirely
-        className={`bg-transparent outline-none m-0 p-0 border-b border-primary border-dashed focus:border-solid ${className}`}
+        className={cn(
+          "h-auto p-0 border-0 rounded-none bg-transparent focus-visible:ring-0 focus-visible:outline-none focus:outline-none shadow-none text-foreground w-full",
+          className
+        )}
+        style={{ minWidth: `${Math.max(currentValue.length + 1, placeholder?.length || 1)}ch` }}
         placeholder={placeholder}
+        onPointerDown={(e) => e.stopPropagation()}
       />
     );
   }
 
   return (
     <span
-      onClick={handleClick}
-      onPointerDown={!disabled ? (e) => e.stopPropagation() : undefined} 
-      className={`cursor-text transition-colors hover:text-primary ${!value ? "italic text-muted-foreground" : ""} ${className}`}
+      onClick={handleDisplayClick}
+      onPointerDown={(e) => e.stopPropagation()}
+      className={cn(className, !disabled && "cursor-text", !value && "italic text-foreground/70", "inline-block min-h-[24px] min-w-[10px]")}
     >
-      {value || placeholder}
+      {value || placeholder || "Click to edit"}
     </span>
   );
 }

@@ -1,34 +1,49 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/use-auth';
+
+const PAGE_MAP: Record<string, React.LazyExoticComponent<any>> = {
+  'overview': lazy(() => import('../../pages/Overview')),
+  'calendar': lazy(() => import('../../pages/Calendar')),
+  'tasks': lazy(() => import('../../pages/Tasks')),
+  'admin': lazy(() => import('../../pages/Admin')),
+  'settings': lazy(() => import('../../pages/Settings')),
+  'notifications': lazy(() => import('../../pages/Notifications')),
+  'teams': lazy(() => import('../../pages/Teams')),
+  'projects': lazy(() => import('../../pages/Projects')),
+};
 
 // A dynamic router that acts as the traffic controller resolving paths to tabs
 export function DynamicPageRenderer() {
   const { pagePath } = useParams();
   const { appSettings } = useAuth();
   
+  const isStaticUserRoute = ['settings', 'notifications', 'teams', 'projects'].includes(pagePath || '');
+
   // Find which page we are supposed to render based on the URL wildcard 
-  // (e.g., if pagePath is "overview", match it against appSettings)
   const matchingPage = appSettings.pages.find(p => p.path === `/dashboard/${pagePath}`);
 
-  if (!matchingPage) {
+  if (!matchingPage && !isStaticUserRoute) {
      return <Navigate to="/dashboard/overview" replace />;
   }
 
+  const PageComponent = PAGE_MAP[pagePath as string];
+
+  if (!PageComponent) {
+     return (
+        <div className="p-8 h-full text-destructive">
+           Page component for "{pagePath}" not found in PAGE_MAP.
+        </div>
+     );
+  }
+
   return (
-     <div className="p-8 h-full">
-         {/* Render the unified UI. In reality here you would branch to tasks-tab, calendar-tab etc. */}
-         <div className="flex items-center gap-2 mb-6">
-            <span className="material-symbols-outlined text-muted-foreground mr-2" style={{ fontSize: '32px', fontVariationSettings: "'wght' 100" }}>
-               {matchingPage.icon}
-             </span>
-             <h1 className="text-3xl font-thin tracking-wide">{matchingPage.name}</h1>
-         </div>
-         
-         <div className="text-muted-foreground">
-             Resolving dynamic tabs for {matchingPage.id}...
-             <pre className="mt-4 p-4 border rounded-md text-xs">{JSON.stringify(matchingPage.associatedTabs, null, 2)}</pre>
-         </div>
-     </div>
+    <Suspense fallback={
+        <div className="flex items-center justify-center p-8 h-full text-muted-foreground w-full">
+            <span className="material-symbols-outlined animate-spin text-3xl">radio_button_unchecked</span>
+        </div>
+    }>
+        <PageComponent />
+    </Suspense>
   );
 }

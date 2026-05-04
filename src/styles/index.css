@@ -86,18 +86,106 @@
 
     --emphasis-color: hsl(var(--foreground));
   }
+
+  /* High Contrast Mode Overrides */
+  .high-contrast {
+    --foreground: 0 0% 0%;
+    --background: 0 0% 100%;
+    --border: 0 0% 0%;
+    --muted-foreground: 0 0% 10%;
+    --accent-foreground: 0 0% 0%;
+    --card-foreground: 0 0% 0%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --secondary: 0 0% 100%;
+    --muted: 0 0% 100%;
+    --ring: 0 0% 0%;
+  }
+
+  .high-contrast * {
+    border-width: 2px !important;
+    transition: none !important;
+    background-image: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  .dark.high-contrast {
+    --foreground: 0 0% 100%;
+    --background: 0 0% 0%;
+    --border: 0 0% 100%;
+    --muted-foreground: 0 0% 90%;
+    --accent-foreground: 0 0% 100%;
+    --card-foreground: 0 0% 100%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --secondary: 0 0% 0%;
+    --muted: 0 0% 0%;
+    --ring: 0 0% 100%;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
+  /* Global reset for focus/hover behavior to prioritize emphasis system */
+  /* This targets all interactive elements and standard Tailwind feedback utilities */
+  *:focus, *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Force background/border/ring to stay static on hover/active states */
+  /* Matches: hover:bg-, group-hover:bg-, data-[state=active]:bg-, etc. */
+  button:hover,
+  a:hover,
+  [role="button"]:hover,
+  [role="menuitem"]:hover,
+  .group:hover *,
+  [data-state="active"],
+  [data-state="open"],
+  [aria-selected="true"],
+  [class*="hover:bg-"]:hover,
+  [class*="hover:border-"]:hover,
+  [class*="hover:ring-"]:hover,
+  .group:hover [class*="group-hover:bg-"],
+  .group:hover [class*="group-hover:border-"],
+  .group:hover [class*="group-hover:text-"],
+  [class*="data-[state=active]:bg-"][data-state="active"],
+  [class*="data-[state=on]:bg-"][data-state="on"] {
+    background-color: transparent !important;
+    border-color: inherit !important;
+    box-shadow: none !important;
+    /* If it had a specific text color change on group-hover, revert it to let emphasis handle it */
+    color: inherit;
+  }
+
+  /* Exception: Keep primary buttons primary, but don't let them CHANGE on hover */
+  .bg-primary:hover,
+  .bg-destructive:hover,
+  .bg-green-500:hover {
+    background-color: inherit !important;
+  }
+
+  /* High Contrast exceptions for borders */
+  .high-contrast * {
+    border-width: 2px !important;
+    transition: none !important;
+    background-image: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-family: 'Roboto', sans-serif;
+    font-weight: var(--global-icon-weight, 400);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Roboto', sans-serif;
+    font-weight: var(--global-icon-weight, 400);
   }
 }
 
@@ -110,14 +198,30 @@
   .font-emphasis:hover,
   .font-emphasis:focus,
   .font-emphasis[data-state=open],
-  .font-emphasis[data-state=active] {
+  .font-emphasis[data-state=active],
+  button:hover,
+  button:focus,
+  a:hover,
+  a:focus,
+  [role="button"]:hover,
+  [role="button"]:focus,
+  [role="menuitem"]:hover,
+  [role="menuitem"]:focus {
     font-weight: var(--font-weight-emphasis) !important;
   }
 
   .font-emphasis:hover .material-symbols-outlined,
   .font-emphasis:focus .material-symbols-outlined,
   .font-emphasis[data-state=open] .material-symbols-outlined,
-  .font-emphasis[data-state=active] .material-symbols-outlined {
+  .font-emphasis[data-state=active] .material-symbols-outlined,
+  button:hover .material-symbols-outlined,
+  button:focus .material-symbols-outlined,
+  a:hover .material-symbols-outlined,
+  a:focus .material-symbols-outlined,
+  [role="button"]:hover .material-symbols-outlined,
+  [role="button"]:focus .material-symbols-outlined,
+  [role="menuitem"]:hover .material-symbols-outlined,
+  [role="menuitem"]:focus .material-symbols-outlined {
     font-variation-settings:
       'FILL' var(--emphasis-icon-fill),
       'wght' var(--font-weight-emphasis, 500),
@@ -126,11 +230,19 @@
   }
 
   /* Always-on emphasis — used for active/selected states */
-  .font-emphasized {
+  .font-emphasized,
+  [data-state="active"],
+  [data-state="on"],
+  [aria-selected="true"],
+  [aria-current="page"] {
     font-weight: var(--font-weight-emphasis) !important;
   }
 
-  .font-emphasized .material-symbols-outlined {
+  .font-emphasized .material-symbols-outlined,
+  [data-state="active"] .material-symbols-outlined,
+  [data-state="on"] .material-symbols-outlined,
+  [aria-selected="true"] .material-symbols-outlined,
+  [aria-current="page"] .material-symbols-outlined {
     font-variation-settings:
       'FILL' var(--emphasis-icon-fill),
       'wght' var(--font-weight-emphasis, 500),
@@ -142,7 +254,15 @@
   body.bold-emphasis .font-emphasis:hover,
   body.bold-emphasis .font-emphasis:focus,
   body.bold-emphasis .font-emphasis[data-state=open],
-  body.bold-emphasis .font-emphasis[data-state=active] {
+  body.bold-emphasis .font-emphasis[data-state=active],
+  body.bold-emphasis button:hover,
+  body.bold-emphasis button:focus,
+  body.bold-emphasis a:hover,
+  body.bold-emphasis a:focus,
+  body.bold-emphasis [role="button"]:hover,
+  body.bold-emphasis [role="button"]:focus,
+  body.bold-emphasis [role="menuitem"]:hover,
+  body.bold-emphasis [role="menuitem"]:focus {
     color: hsl(var(--primary)) !important;
   }
 
@@ -150,7 +270,19 @@
   body.bold-emphasis .font-emphasis:focus .material-symbols-outlined,
   body.bold-emphasis .font-emphasis[data-state=open] .material-symbols-outlined,
   body.bold-emphasis .font-emphasis[data-state=active] .material-symbols-outlined,
-  body.bold-emphasis .font-emphasized .material-symbols-outlined {
+  body.bold-emphasis button:hover .material-symbols-outlined,
+  body.bold-emphasis button:focus .material-symbols-outlined,
+  body.bold-emphasis a:hover .material-symbols-outlined,
+  body.bold-emphasis a:focus .material-symbols-outlined,
+  body.bold-emphasis [role="button"]:hover .material-symbols-outlined,
+  body.bold-emphasis [role="button"]:focus .material-symbols-outlined,
+  body.bold-emphasis [role="menuitem"]:hover .material-symbols-outlined,
+  body.bold-emphasis [role="menuitem"]:focus .material-symbols-outlined,
+  body.bold-emphasis .font-emphasized .material-symbols-outlined,
+  body.bold-emphasis [data-state="active"] .material-symbols-outlined,
+  body.bold-emphasis [data-state="on"] .material-symbols-outlined,
+  body.bold-emphasis [aria-selected="true"] .material-symbols-outlined,
+  body.bold-emphasis [aria-current="page"] .material-symbols-outlined {
     color: hsl(var(--primary)) !important;
     font-variation-settings:
       'FILL' var(--emphasis-icon-fill),
@@ -159,7 +291,11 @@
       'opsz' var(--global-icon-optical-size, 24) !important;
   }
 
-  body.bold-emphasis .font-emphasized {
+  body.bold-emphasis .font-emphasized,
+  body.bold-emphasis [data-state="active"],
+  body.bold-emphasis [data-state="on"],
+  body.bold-emphasis [aria-selected="true"],
+  body.bold-emphasis [aria-current="page"] {
     color: hsl(var(--primary)) !important;
   }
 }
@@ -225,6 +361,44 @@
     border-radius: 9999px;
     background: hsl(var(--card));
     border: 2px solid hsl(var(--foreground));
+  }
+
+  /* Custom Thin Slider */
+  .thin-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    height: 12px;
+  }
+
+  .thin-slider::-webkit-slider-runnable-track {
+    height: 2px;
+    background: hsl(var(--border));
+    border-radius: 2px;
+  }
+
+  .thin-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: hsl(var(--foreground));
+    margin-top: -5px;
+    box-shadow: 0 0 0 1px hsl(var(--border));
+    transition: transform 0.2s;
+  }
+
+  .thin-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 12px;
+    width: 12px;
+    border-radius: 50%;
+    background: hsl(var(--foreground));
+    margin-top: -5px;
+    box-shadow: 0 0 0 1px hsl(var(--border));
   }
 
   /* Material Symbols base configuration */

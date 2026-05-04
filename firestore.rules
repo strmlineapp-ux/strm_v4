@@ -36,9 +36,10 @@ service cloud.firestore {
 
     // USERS COLLECTION
     match /users/{userId} {
-      // Any authenticated user can read if they share the same workspace 
-      // OR they are reading their own profile during bootstrap login.
-      allow read: if isSignedIn() && (
+      // Any authenticated user can list users (needed for bootstrap empty-workspace check)
+      allow list: if isSignedIn();
+      // Users can get their own profile, or Full users can get any profile in their workspace
+      allow get: if isSignedIn() && (
         request.auth.uid == userId || (isFullUser() && isInWorkspace(resource.data.workspaceId))
       );
       

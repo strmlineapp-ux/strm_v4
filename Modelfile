@@ -1,0 +1,1 @@
+FROM "/Users/bresende/.cache/huggingface/hub/models--ggml-org--gemma-4-31b-it-GGUF/snapshots/d317d8909e8c724d7c0fa00fc95aeabab40b1bb4/gemma-4-31B-it-Q8_0.gguf"

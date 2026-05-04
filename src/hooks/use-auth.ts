@@ -3,7 +3,7 @@ import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
 export function useAuth() {
-  const { currentUser, viewAsUser, setViewAsUserId, loading, appSettings, users } = useUserContext();
+  const { currentUser, viewAsUser, setViewAsUserId, updatePreference, updateUser, deleteUser, addPreApprovedEmail, removePreApprovedEmail, loading, appSettings, users, preApprovedEmails } = useUserContext();
 
   const loginWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -27,14 +27,20 @@ export function useAuth() {
     currentUser,
     viewAsUser, // Components should rely on this instead of currentUser for displaying context
     setViewAsUserId,
+    updatePreference,
+    updateUser,
+    deleteUser,
+    addPreApprovedEmail,
+    removePreApprovedEmail,
     appSettings,
     users,
+    preApprovedEmails,
     loading,
     loginWithGoogle,
     logout,
     isAuthenticated: !!currentUser && currentUser.accountType === 'Full',
     isPending: !!currentUser && currentUser.accountType === 'Viewer',
     isAdmin: !!currentUser?.isAdmin,
-    isImpersonating: currentUser?.userId !== viewAsUser?.userId
+    isImpersonating: !!viewAsUser && currentUser?.userId !== viewAsUser?.userId
   };
 }
